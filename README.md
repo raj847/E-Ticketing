@@ -39,6 +39,74 @@ The main package serves as the execution point for the entire codebase. It integ
 
 Thank you for exploring our service structure! Should you have any questions or suggestions, please feel free to raise an issue or submit a pull request.
 
+## Database Design
+![Design Diagram](rancangan.png) 
+
+### Description:
+
+### Tabel `Users`
+Mencatat informasi pengguna kartu prepaid.
+- `user_id`: (PrimaryKey) ID unik setiap pengguna.
+- `name`: Nama pengguna.
+- `card_id`: Nomor identifikasi unik kartu prepaid.
+- `balance`: Saldo saat ini di kartu.
+
+### Tabel `Terminals`
+Mencatat informasi mengenai titik terminal.
+- `terminal_id`: (PrimaryKey) ID unik setiap terminal.
+- `terminal_name`: Nama terminal (misalnya: Terminal A, Terminal B).
+- `location`: Lokasi fisik dari terminal.
+
+### Tabel `Gates`
+Mencatat informasi mengenai gerbang validasi di setiap terminal.
+- `gate_id`: (PrimaryKey) ID unik setiap gerbang.
+- `terminal_id`: (ForeignKey) ID terminal tempat gerbang berada.
+- `gate_name`: Nama dari gerbang (misalnya: Gate A1, Gate B2).
+
+### Tabel `Tariffs`
+Mencatat informasi tarif antar terminal.
+- `tariff_id`: (PrimaryKey) ID unik setiap kombinasi tarif.
+- `terminal_start_id`: (ForeignKey) ID terminal awal.
+- `terminal_end_id`: (ForeignKey) ID terminal akhir.
+- `price`: Tarif untuk perjalanan antara terminal awal dan akhir.
+
+### Tabel `Transactions`
+Mencatat transaksi setiap pengguna saat checkin dan checkout.
+- `transaction_id`: (PrimaryKey) ID unik setiap transaksi.
+- `user_id`: (ForeignKey) ID pengguna yang melakukan transaksi.
+- `checkin_time`: Waktu checkin.
+- `checkin_gate_id`: (ForeignKey) ID gerbang validasi saat checkin.
+- `checkout_time`: Waktu checkout.
+- `checkout_gate_id`: (ForeignKey) ID gerbang validasi saat checkout.
+- `tariff_id`: (ForeignKey) ID tarif yang dikenakan saat checkout.
+
+### Relasi Antara Tabel:
+- `Users` ke `Transactions`: Satu pengguna dapat memiliki banyak transaksi. Relasi One-to-Many.
+- `Terminals` ke `Gates`: Satu terminal bisa memiliki banyak gerbang. Relasi One-to-Many.
+- `Terminals` ke `Tariffs`: Dua terminal mendefinisikan satu tarif. Relasi Many-to-Many.
+- `Gates` ke `Transactions`: Satu gerbang bisa dicatat dalam banyak transaksi. Relasi One-to-Many.
+
+## Operational Flow
+
+**Saat Ada Jaringan Internet:**
+1. Pengguna mendekatkan kartu prepaid ke gerbang validasi saat checkin.
+2. Gerbang validasi membaca ID kartu dan mencatat titik terminal checkin serta waktu checkin.
+3. Informasi ini dikirim ke server pusat yang menyimpannya dalam database transaksi yang sedang berlangsung.
+4. Saat checkout, pengguna mendekatkan kartu ke gerbang validasi lain di titik terminal yang berbeda.
+5. Gerbang validasi mencatat titik terminal checkout dan mengkomunikasikannya ke server pusat.
+6. Server pusat menghitung tarif berdasarkan titik terminal checkin dan checkout, kemudian mengurangkan saldo dari kartu prepaid pengguna.
+7. Jika saldo cukup, transaksi berhasil dan informasi ditampilkan di gerbang validasi. Jika tidak, gerbang akan memberikan notifikasi bahwa saldo tidak mencukupi.
+
+**Saat Tidak Ada Jaringan Internet:**
+1. Semua informasi yang diperlukan untuk menghitung tarif tersimpan secara lokal di setiap gerbang validasi.
+2. Saat pengguna checkin, gerbang validasi mencatat informasi di memori lokalnya.
+3. Saat checkout, gerbang validasi mencari informasi checkin dari memori lokal, menghitung tarif yang harus dibayar, dan mengurangkan dari saldo kartu.
+4. Ketika koneksi internet dipulihkan, gerbang validasi akan mengirimkan data transaksi yang terjadi saat offline ke server pusat untuk disinkronkan dengan database pusat.
+5. Ada batas waktu untuk gerbang validasi untuk disinkronkan dengan server pusat setelah transaksi offline. Jika tidak, ia memberikan notifikasi kepada operator sistem.
+
+## API Documentation
+For a detailed understanding of our API and how to use it, please refer to our comprehensive [Postman API documentation](https://documenter.getpostman.com/view/16407134/2s9YJeyM9d).
+
 # Instructions on How to Run the Service
 
 Follow these steps to set up and run the service on your local environment:
@@ -134,71 +202,3 @@ With everything set up, you can now run the service with the following command:
 ```bash
 go run main.go
 ```
-
-## Database Design
-![Design Diagram](rancangan.png) 
-
-### Description:
-
-### Tabel `Users`
-Mencatat informasi pengguna kartu prepaid.
-- `user_id`: (PrimaryKey) ID unik setiap pengguna.
-- `name`: Nama pengguna.
-- `card_id`: Nomor identifikasi unik kartu prepaid.
-- `balance`: Saldo saat ini di kartu.
-
-### Tabel `Terminals`
-Mencatat informasi mengenai titik terminal.
-- `terminal_id`: (PrimaryKey) ID unik setiap terminal.
-- `terminal_name`: Nama terminal (misalnya: Terminal A, Terminal B).
-- `location`: Lokasi fisik dari terminal.
-
-### Tabel `Gates`
-Mencatat informasi mengenai gerbang validasi di setiap terminal.
-- `gate_id`: (PrimaryKey) ID unik setiap gerbang.
-- `terminal_id`: (ForeignKey) ID terminal tempat gerbang berada.
-- `gate_name`: Nama dari gerbang (misalnya: Gate A1, Gate B2).
-
-### Tabel `Tariffs`
-Mencatat informasi tarif antar terminal.
-- `tariff_id`: (PrimaryKey) ID unik setiap kombinasi tarif.
-- `terminal_start_id`: (ForeignKey) ID terminal awal.
-- `terminal_end_id`: (ForeignKey) ID terminal akhir.
-- `price`: Tarif untuk perjalanan antara terminal awal dan akhir.
-
-### Tabel `Transactions`
-Mencatat transaksi setiap pengguna saat checkin dan checkout.
-- `transaction_id`: (PrimaryKey) ID unik setiap transaksi.
-- `user_id`: (ForeignKey) ID pengguna yang melakukan transaksi.
-- `checkin_time`: Waktu checkin.
-- `checkin_gate_id`: (ForeignKey) ID gerbang validasi saat checkin.
-- `checkout_time`: Waktu checkout.
-- `checkout_gate_id`: (ForeignKey) ID gerbang validasi saat checkout.
-- `tariff_id`: (ForeignKey) ID tarif yang dikenakan saat checkout.
-
-### Relasi Antara Tabel:
-- `Users` ke `Transactions`: Satu pengguna dapat memiliki banyak transaksi. Relasi One-to-Many.
-- `Terminals` ke `Gates`: Satu terminal bisa memiliki banyak gerbang. Relasi One-to-Many.
-- `Terminals` ke `Tariffs`: Dua terminal mendefinisikan satu tarif. Relasi Many-to-Many.
-- `Gates` ke `Transactions`: Satu gerbang bisa dicatat dalam banyak transaksi. Relasi One-to-Many.
-
-## Operational Flow
-
-**Saat Ada Jaringan Internet:**
-1. Pengguna mendekatkan kartu prepaid ke gerbang validasi saat checkin.
-2. Gerbang validasi membaca ID kartu dan mencatat titik terminal checkin serta waktu checkin.
-3. Informasi ini dikirim ke server pusat yang menyimpannya dalam database transaksi yang sedang berlangsung.
-4. Saat checkout, pengguna mendekatkan kartu ke gerbang validasi lain di titik terminal yang berbeda.
-5. Gerbang validasi mencatat titik terminal checkout dan mengkomunikasikannya ke server pusat.
-6. Server pusat menghitung tarif berdasarkan titik terminal checkin dan checkout, kemudian mengurangkan saldo dari kartu prepaid pengguna.
-7. Jika saldo cukup, transaksi berhasil dan informasi ditampilkan di gerbang validasi. Jika tidak, gerbang akan memberikan notifikasi bahwa saldo tidak mencukupi.
-
-**Saat Tidak Ada Jaringan Internet:**
-1. Semua informasi yang diperlukan untuk menghitung tarif tersimpan secara lokal di setiap gerbang validasi.
-2. Saat pengguna checkin, gerbang validasi mencatat informasi di memori lokalnya.
-3. Saat checkout, gerbang validasi mencari informasi checkin dari memori lokal, menghitung tarif yang harus dibayar, dan mengurangkan dari saldo kartu.
-4. Ketika koneksi internet dipulihkan, gerbang validasi akan mengirimkan data transaksi yang terjadi saat offline ke server pusat untuk disinkronkan dengan database pusat.
-5. Ada batas waktu untuk gerbang validasi untuk disinkronkan dengan server pusat setelah transaksi offline. Jika tidak, ia memberikan notifikasi kepada operator sistem.
-
-## API Documentation
-For a detailed understanding of our API and how to use it, please refer to our comprehensive [Postman API documentation](https://documenter.getpostman.com/view/16407134/2s9YJeyM9d).
