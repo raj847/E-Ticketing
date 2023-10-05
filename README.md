@@ -86,6 +86,8 @@ Mencatat transaksi setiap pengguna saat checkin dan checkout.
 - `Terminals` ke `Tariffs`: Dua terminal mendefinisikan satu tarif. Relasi Many-to-Many.
 - `Gates` ke `Transactions`: Satu gerbang bisa dicatat dalam banyak transaksi. Relasi One-to-Many.
 
+## Design Rancangan
+![Design Rancangan](B1.png) 
 ## Operational Flow
 
 **Saat Ada Jaringan Internet:**
